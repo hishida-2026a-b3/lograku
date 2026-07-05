@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; max-width: 760px; margin: 24px auto; padding: 0 16px; color: #222; line-height: 1.6; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; margin-top: 28px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    p.note { color: #666; font-size: 13px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 14px; }
+    th { background: #f6f6f6; }
+    select, input[type="text"], textarea { font-size: 14px; padding: 5px; box-sizing: border-box; width: 100%; }
+    textarea { width: 100%; height: 60px; }
+    button { font-size: 14px; padding: 8px 16px; cursor: pointer; border-radius: 6px; border: 1px solid #ccc; background: #fff; }
+    button.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+    button.primary:disabled { background: #9bbef0; border-color: #9bbef0; cursor: default; }
+    .row-actions { margin: 10px 0; }
+    #result { margin-top: 24px; padding: 14px; border-radius: 8px; display: none; }
+    #result.ok { background: #e8f5e9; border: 1px solid #a5d6a7; }
+    #result.err { background: #fdecea; border: 1px solid #f5b5b0; }
+    #result ul { margin: 8px 0; }
+    a { color: #1a73e8; }
+    .del { color: #c00; cursor: pointer; border: none; background: none; font-size: 16px; }
+    details { margin-top: 28px; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; }
+    details > summary { font-size: 16px; font-weight: bold; cursor: pointer; padding: 4px 0; }
+    details[open] > summary { border-bottom: 1px solid #eee; margin-bottom: 8px; padding-bottom: 8px; }
+    details p.note { margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>ログらく 初期設定</h1>
+  <p class="note">
+    時間割を入れて「作成する」を押すと、<b>あなたの Google ドライブ</b>に <b>ログらく</b> フォルダ・<b>_inbox</b>・科目フォルダ・設定ファイル(lograku.md)が作られ、
+    <b>30分ごとの自動処理</b>も登録されます。あとは <b>ログらく/_inbox</b> に授業の録音や文字起こしを置くだけで、数分で科目フォルダに議事録が生成されます。
+  </p>
+
+  <h2>① 時間割</h2>
+  <p class="note">録音した時刻と照合して科目を推定するのに使います。同じ科目を何コマ書いてもOK。</p>
+  <table>
+    <thead>
+      <tr><th style="width:120px">曜日</th><th style="width:90px">時限</th><th>科目名</th><th style="width:40px"></th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="row-actions">
+    <button type="button" onclick="addRow()">＋ 行を追加</button>
+  </div>
+
+  <h2>② 科目ごとの分類ヒント（任意）</h2>
+  <p class="note">「この科目はこういう言葉が出る」というキーワードを書くと、分類の精度が上がります。時間割を入れると自動で欄が出ます。</p>
+  <table>
+    <thead><tr><th style="width:180px">科目</th><th>よく出る言葉（・や、で区切る）</th></tr></thead>
+    <tbody id="keywords"><tr><td colspan="2" class="note">時間割に科目を入れるとここに表示されます。</td></tr></tbody>
+  </table>
+
+  <h2>③ 議事録・ファイル名のルール（任意）</h2>
+  <p class="note">空欄なら標準のルールが使われます。これは全科目共通の既定です。</p>
+  <p>議事録の書き方:</p>
+  <textarea id="minutesGuide" placeholder="例: 授業の復習用。今日の要点3〜5個、重要用語、確認問題3問。だ・である調で約1000字。"></textarea>
+  <p>ファイル名の付け方:</p>
+  <input type="text" id="namingRule" placeholder="例: 日付_科目_内容 の順">
+
+  <details id="overridesSection">
+    <summary>④ 科目ごとの詳しい設定（任意）</summary>
+    <p class="note">科目ごとに議事録の書き方やファイル名のつけ方を変えたいときだけ入力します。空欄の科目は③の共通ルールが使われます。時間割を入れると自動で欄が出ます。</p>
+    <table>
+      <thead><tr><th style="width:140px">科目</th><th>議事録の書き方（上書き）</th><th>ファイル名のつけ方（上書き）</th></tr></thead>
+      <tbody id="overrides"><tr><td colspan="3" class="note">時間割に科目を入れるとここに表示されます。</td></tr></tbody>
+    </table>
+  </details>
+
+  <details id="keySection">
+    <summary>⑤ 自分のGeminiキー（任意）</summary>
+    <p class="note">空ならオーナー共有キーで動きます。各自のキーを入れると各自の無料枠で処理されます。</p>
+    <input type="text" id="geminiKey" placeholder="例: AIza... （空欄ならオーナー共有キーを使います）">
+  </details>
+
+  <div class="row-actions" style="margin-top:24px">
+    <button type="button" class="primary" id="submitBtn" onclick="submitForm()">この内容で作成する</button>
+  </div>
+
+  <div class="row-actions" style="margin-top:4px; font-size:13px; color:#666;">
+    設定済みの方の操作：
+    <button type="button" id="runNowBtn" onclick="runNow()">▶ 今すぐ処理</button>
+    <button type="button" id="stopBtn" onclick="stopAutomation()">⏸ 自動処理を止める</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    var DAYS = ['月', '火', '水', '木', '金', '土', '日'];
+    var PERIODS = ['1', '2', '3', '4', '5', '6'];
+
+    function makeSelect(options, cls) {
+      var s = '<select class="' + cls + '">';
+      for (var i = 0; i < options.length; i++) s += '<option>' + options[i] + '</option>';
+      s += '</select>';
+      return s;
+    }
+
+    function addRow(day, period, subject) {
+      var tbody = document.getElementById('rows');
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + makeSelect(DAYS, 'day') + '</td>' +
+        '<td>' + makeSelect(PERIODS, 'period') + '</td>' +
+        '<td><input type="text" class="subject" placeholder="例: 物理"></td>' +
+        '<td><button type="button" class="del" title="削除">×</button></td>';
+      tbody.appendChild(tr);
+      if (day) tr.querySelector('.day').value = day;
+      if (period) tr.querySelector('.period').value = period;
+      if (subject) tr.querySelector('.subject').value = subject;
+      tr.querySelector('.del').addEventListener('click', function () {
+        tr.parentNode.removeChild(tr);
+        refreshSections();
+      });
+      tr.querySelector('.subject').addEventListener('input', refreshSections);
+    }
+
+    function collectSubjects() {
+      var subs = [];
+      var inputs = document.querySelectorAll('#rows .subject');
+      for (var i = 0; i < inputs.length; i++) {
+        var v = inputs[i].value.trim();
+        if (v && subs.indexOf(v) < 0) subs.push(v);
+      }
+      return subs;
+    }
+
+    // 科目入力／行削除のたびに、科目に連動する2つの表（分類ヒント・科目別の詳しい設定）を作り直す。
+    function refreshSections() {
+      refreshKeywords();
+      refreshOverrides();
+    }
+
+    function refreshKeywords() {
+      var subs = collectSubjects();
+      var tbody = document.getElementById('keywords');
+      // 既存入力値を退避
+      var prev = {};
+      var existing = tbody.querySelectorAll('input.kw');
+      for (var e = 0; e < existing.length; e++) prev[existing[e].getAttribute('data-subject')] = existing[e].value;
+
+      tbody.innerHTML = '';
+      if (subs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" class="note">時間割に科目を入れるとここに表示されます。</td></tr>';
+        return;
+      }
+      for (var i = 0; i < subs.length; i++) {
+        var tr = document.createElement('tr');
+        var val = prev[subs[i]] ? prev[subs[i]].replace(/"/g, '&quot;') : '';
+        tr.innerHTML = '<td>' + subs[i] + '</td><td><input type="text" class="kw" data-subject="' + subs[i] + '" value="' + val + '" placeholder="例: 力・運動方程式・速度・エネルギー"></td>';
+        tbody.appendChild(tr);
+      }
+    }
+
+    function refreshOverrides() {
+      var subs = collectSubjects();
+      var tbody = document.getElementById('overrides');
+      // 既存入力値を退避（科目ごとに minutes / naming の2つ）
+      var prevMin = {};
+      var prevNam = {};
+      var exMin = tbody.querySelectorAll('input.ov-min');
+      for (var a = 0; a < exMin.length; a++) prevMin[exMin[a].getAttribute('data-subject')] = exMin[a].value;
+      var exNam = tbody.querySelectorAll('input.ov-nam');
+      for (var b = 0; b < exNam.length; b++) prevNam[exNam[b].getAttribute('data-subject')] = exNam[b].value;
+
+      tbody.innerHTML = '';
+      if (subs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="note">時間割に科目を入れるとここに表示されます。</td></tr>';
+        return;
+      }
+      for (var i = 0; i < subs.length; i++) {
+        var tr = document.createElement('tr');
+        var vMin = prevMin[subs[i]] ? prevMin[subs[i]].replace(/"/g, '&quot;') : '';
+        var vNam = prevNam[subs[i]] ? prevNam[subs[i]].replace(/"/g, '&quot;') : '';
+        tr.innerHTML = '<td>' + subs[i] + '</td>' +
+          '<td><input type="text" class="ov-min" data-subject="' + subs[i] + '" value="' + vMin + '" placeholder="この科目だけの議事録ルール"></td>' +
+          '<td><input type="text" class="ov-nam" data-subject="' + subs[i] + '" value="' + vNam + '" placeholder="この科目だけのファイル名ルール"></td>';
+        tbody.appendChild(tr);
+      }
+    }
+
+    function submitForm() {
+      var rows = [];
+      var trs = document.querySelectorAll('#rows tr');
+      for (var i = 0; i < trs.length; i++) {
+        var subject = trs[i].querySelector('.subject').value.trim();
+        if (!subject) continue;
+        rows.push({
+          day: trs[i].querySelector('.day').value,
+          period: trs[i].querySelector('.period').value,
+          subject: subject
+        });
+      }
+      if (rows.length === 0) {
+        showResult(false, '時間割を1行以上、科目名まで入れてください。');
+        return;
+      }
+      var keywords = {};
+      var kwInputs = document.querySelectorAll('#keywords input.kw');
+      for (var k = 0; k < kwInputs.length; k++) {
+        var sub = kwInputs[k].getAttribute('data-subject');
+        var v = kwInputs[k].value.trim();
+        if (v) keywords[sub] = v;
+      }
+      // 科目別の上書き（minutes か naming が非空の科目のみ）
+      var overrides = {};
+      var ovMin = document.querySelectorAll('#overrides input.ov-min');
+      for (var m = 0; m < ovMin.length; m++) {
+        var subM = ovMin[m].getAttribute('data-subject');
+        var vM = ovMin[m].value.trim();
+        if (vM) {
+          if (!overrides[subM]) overrides[subM] = { minutes: '', naming: '' };
+          overrides[subM].minutes = vM;
+        }
+      }
+      var ovNam = document.querySelectorAll('#overrides input.ov-nam');
+      for (var n = 0; n < ovNam.length; n++) {
+        var subN = ovNam[n].getAttribute('data-subject');
+        var vN = ovNam[n].value.trim();
+        if (vN) {
+          if (!overrides[subN]) overrides[subN] = { minutes: '', naming: '' };
+          overrides[subN].naming = vN;
+        }
+      }
+      var form = {
+        rows: rows,
+        keywords: keywords,
+        minutesGuide: document.getElementById('minutesGuide').value,
+        namingRule: document.getElementById('namingRule').value,
+        overrides: overrides,
+        geminiKey: document.getElementById('geminiKey').value.trim()
+      };
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '作成中...';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          btn.disabled = false;
+          btn.textContent = 'この内容で作成する';
+          var html = '<b>' + res.message + '</b><ul>';
+          html += '<li>基底フォルダ: <a href="' + res.baseUrl + '" target="_blank">' + res.baseName + '</a></li>';
+          for (var f = 0; f < res.folders.length; f++) {
+            html += '<li><a href="' + res.folders[f].url + '" target="_blank">' + res.folders[f].name + '</a></li>';
+          }
+          html += '<li>設定ファイル: <a href="' + res.configUrl + '" target="_blank">lograku.md</a></li>';
+          html += '</ul>';
+          if (res.triggerInstalled) {
+            html += '<p class="note">✅ 自動処理ON：30分ごとに <b>ログらく/_inbox</b> を自動チェックして議事録を作ります。録音や文字起こしを <b>_inbox</b> に置くだけでOK。</p>';
+          } else {
+            html += '<p class="note">⚠ 自動処理の登録に失敗しました。設定をもう一度開くか、管理者に連絡してください。</p>';
+          }
+          showResultHtml(true, html);
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false;
+          btn.textContent = 'この内容で作成する';
+          showResult(false, '作成に失敗しました: ' + err.message);
+        })
+        .setupWorkspace(form);
+    }
+
+    function showResult(ok, text) {
+      showResultHtml(ok, text);
+    }
+    function showResultHtml(ok, html) {
+      var el = document.getElementById('result');
+      el.className = ok ? 'ok' : 'err';
+      el.innerHTML = html;
+      el.style.display = 'block';
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 設定済みの人向け：いま _inbox を1回処理する（30分待たずに即実行）
+    function runNow() {
+      var b = document.getElementById('runNowBtn');
+      b.disabled = true;
+      b.textContent = '処理中...';
+      google.script.run
+        .withSuccessHandler(function (r) {
+          b.disabled = false;
+          b.textContent = '▶ 今すぐ処理';
+          var msg = (r && r.total)
+            ? '処理しました：' + (r.processed || 0) + '件の議事録を作成 / ' + (r.skipped || 0) + '件スキップ（入力 ' + r.total + ' 件）。科目フォルダ・_要確認 を確認してください。'
+            : '_inbox に未処理のファイルはありませんでした。';
+          var html = '<b>' + msg + '</b>';
+          var hasErrors = !!(r && r.errors && r.errors.length);
+          if (hasErrors) {
+            html += '<br><br><b style="color:#c0392b;">失敗 ' + r.errors.length + ' 件（_inbox に残し再試行可）:</b><ul style="margin:6px 0 0;color:#c0392b;">';
+            for (var i = 0; i < r.errors.length; i++) {
+              var e = String(r.errors[i]).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              html += '<li>' + e + '</li>';
+            }
+            html += '</ul>';
+          }
+          showResultHtml(!hasErrors, html);
+        })
+        .withFailureHandler(function (e) {
+          b.disabled = false;
+          b.textContent = '▶ 今すぐ処理';
+          showResult(false, '処理に失敗しました: ' + e.message);
+        })
+        .runNow();
+    }
+
+    // 設定済みの人向け：自動処理（時間トリガー）を止める＝アンインストール
+    function stopAutomation() {
+      var b = document.getElementById('stopBtn');
+      b.disabled = true;
+      b.textContent = '停止中...';
+      google.script.run
+        .withSuccessHandler(function () {
+          b.disabled = false;
+          b.textContent = '⏸ 自動処理を止める';
+          showResultHtml(true, '<b>自動処理を止めました。</b><p class="note">フォルダと設定(lograku.md)はそのまま残っています。再開するには時間割を入れて「この内容で作成する」を押してください。</p>');
+        })
+        .withFailureHandler(function (e) {
+          b.disabled = false;
+          b.textContent = '⏸ 自動処理を止める';
+          showResult(false, '停止に失敗しました: ' + e.message);
+        })
+        .stopAutomation();
+    }
+
+    // ── 読込時：既存設定があればフォームへ反映、無ければ初期2行 ──
+    function prefill(cfg) {
+      cfg = cfg || {};
+      if (cfg.exists && cfg.rows && cfg.rows.length > 0) {
+        for (var i = 0; i < cfg.rows.length; i++) {
+          addRow(cfg.rows[i].day, cfg.rows[i].period, cfg.rows[i].subject);
+        }
+      } else {
+        addRow('月', '1', '');
+        addRow('火', '3', '');
+      }
+
+      // 科目に連動する表を生成してから値を流し込む
+      refreshSections();
+
+      // 分類ヒント
+      if (cfg.keywords) {
+        for (var kn in cfg.keywords) {
+          if (!cfg.keywords.hasOwnProperty(kn)) continue;
+          var kwInput = document.querySelector('#keywords input.kw[data-subject="' + cssEscape(kn) + '"]');
+          if (kwInput) kwInput.value = cfg.keywords[kn];
+        }
+      }
+
+      // 科目別の上書き
+      if (cfg.overrides) {
+        for (var on in cfg.overrides) {
+          if (!cfg.overrides.hasOwnProperty(on)) continue;
+          var ov = cfg.overrides[on] || {};
+          var minInput = document.querySelector('#overrides input.ov-min[data-subject="' + cssEscape(on) + '"]');
+          var namInput = document.querySelector('#overrides input.ov-nam[data-subject="' + cssEscape(on) + '"]');
+          if (minInput && ov.minutes) minInput.value = ov.minutes;
+          if (namInput && ov.naming) namInput.value = ov.naming;
+        }
+      }
+
+      // 共通既定
+      if (cfg.minutesGuide) document.getElementById('minutesGuide').value = cfg.minutesGuide;
+      if (cfg.namingRule) document.getElementById('namingRule').value = cfg.namingRule;
+
+      // 各自キーが保存済みなら placeholder だけ変える（キー値は表示しない）
+      if (cfg.hasUserKey) {
+        document.getElementById('geminiKey').placeholder = '設定済み（変更する場合のみ入力）';
+      }
+    }
+
+    function loadDefaults(err) {
+      // getCurrentConfig が失敗してもフォームは使えるよう初期2行を出す
+      addRow('月', '1', '');
+      addRow('火', '3', '');
+    }
+
+    // querySelector の属性値に科目名を埋めるための簡易エスケープ（" と \ のみ）
+    function cssEscape(s) {
+      return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    }
+
+    window.addEventListener('load', function () {
+      google.script.run
+        .withSuccessHandler(prefill)
+        .withFailureHandler(loadDefaults)
+        .getCurrentConfig();
+    });
+  </script>
+</body>
+</html>
