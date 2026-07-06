@@ -108,6 +108,16 @@
 
     /* ---------- schedule grid ---------- */
     .schedule-grid-wrap { overflow-x: auto; margin-bottom: 12px; }
+    .schedule-grid-loading {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; padding: 48px 0; color: var(--muted); font-size: 13px;
+    }
+    .spinner {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 3px solid var(--border); border-top-color: var(--blue);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .schedule-grid {
       display: grid; grid-template-columns: 56px repeat(7, minmax(96px, 1fr));
       gap: 6px; min-width: 780px;
@@ -237,7 +247,11 @@
           </div>
 
           <div class="schedule-grid-wrap">
-            <div class="schedule-grid" id="scheduleGrid"></div>
+            <div class="schedule-grid-loading" id="scheduleGridLoading">
+              <div class="spinner"></div>
+              <p>時間割を読み込み中…</p>
+            </div>
+            <div class="schedule-grid" id="scheduleGrid" hidden></div>
           </div>
         </section>
 
@@ -384,6 +398,10 @@
         }
       }
       grid.innerHTML = html;
+
+      var loadingEl = document.getElementById('scheduleGridLoading');
+      if (loadingEl) loadingEl.style.display = 'none';
+      grid.hidden = false;
     }
 
     function openCellModal(day, period) {
@@ -738,11 +756,25 @@
       }
     });
 
+    // GASのサンドボックス用スクリプト(google.script.run)の注入が
+    // window の load イベントに間に合わないことがあるため、使えるようになるまで待って呼び出す
+    function callGetCurrentConfig(retriesLeft) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(prefill)
+          .withFailureHandler(loadDefaults)
+          .getCurrentConfig();
+        return;
+      }
+      if (retriesLeft <= 0) {
+        loadDefaults();
+        return;
+      }
+      setTimeout(function () { callGetCurrentConfig(retriesLeft - 1); }, 100);
+    }
+
     window.addEventListener('load', function () {
-      google.script.run
-        .withSuccessHandler(prefill)
-        .withFailureHandler(loadDefaults)
-        .getCurrentConfig();
+      callGetCurrentConfig(50);
     });
   </script>
 </body>
