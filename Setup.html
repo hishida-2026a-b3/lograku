@@ -104,6 +104,7 @@
       border-radius: 10px; font-size: 13.4px; color: var(--ink); background: #fff; font-family: inherit;
     }
     textarea { min-height: 90px; resize: vertical; }
+    #minutesGuide { min-height: 320px; }
     button.del { border: none; background: none; color: #e5484d; cursor: pointer; font-size: 16px; line-height: 1; }
 
     /* ---------- schedule grid ---------- */
@@ -301,13 +302,18 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="15" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M11.5 12 20 3.5M17 7l2 2M20 3.5 22 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div>
-              <h2>④ Geminiキー（任意）／確認</h2>
-              <p>個人のAPIキーを使う場合に入力します。空欄でも設定を進められます。</p>
+              <h2>④ Geminiキー・Discord通知（任意）／確認</h2>
+              <p>個人のAPIキーや通知先を使う場合に入力します。空欄でも設定を進められます。</p>
             </div>
           </div>
           <div class="field-block">
             <label>あなたのGeminiキー</label>
             <input type="text" id="geminiKey" placeholder="例: AIza... （空欄ならオーナー共有キーを使います）">
+          </div>
+          <div class="field-block">
+            <label>あなたのDiscord Webhook URL</label>
+            <input type="text" id="discordWebhookUrl" placeholder="例: https://discord.com/api/webhooks/... （空欄ならオーナー共有Webhookを使います）">
+            <p class="field-note" style="margin-top:4px;">議事録が作成されるたびに、指定したDiscordチャンネルへ通知が届きます。</p>
           </div>
 
           <div class="field-block" style="margin-top:28px;">
@@ -619,7 +625,8 @@
         minutesGuide: document.getElementById('minutesGuide').value,
         namingRule: document.getElementById('namingRule').value,
         overrides: overrides,
-        geminiKey: document.getElementById('geminiKey').value.trim()
+        geminiKey: document.getElementById('geminiKey').value.trim(),
+        discordWebhookUrl: document.getElementById('discordWebhookUrl').value.trim()
       };
 
       var btn = document.getElementById('submitBtn');
@@ -737,6 +744,9 @@
 
       if (cfg.hasUserKey) {
         document.getElementById('geminiKey').placeholder = '設定済み（変更する場合のみ入力）';
+      }
+      if (cfg.hasUserWebhook) {
+        document.getElementById('discordWebhookUrl').placeholder = '設定済み（変更する場合のみ入力）';
       }
     }
 

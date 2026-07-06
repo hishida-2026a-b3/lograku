@@ -39,7 +39,8 @@ function slotFolderCode(day, period) {
  *   minutesGuide: string,                       // 任意。議事録の書き方（共通既定）
  *   namingRule: string,                         // 任意。ファイル名の付け方（共通既定）
  *   overrides: { '科目名': { minutes, naming } },// 任意。科目別の上書き
- *   geminiKey: string                           // 任意。各自の Gemini API キー（空ならオーナー共有キー）
+ *   geminiKey: string,                          // 任意。各自の Gemini API キー（空ならオーナー共有キー）
+ *   discordWebhookUrl: string                   // 任意。各自のDiscord Webhook URL（空ならオーナー共有Webhook）
  * }
  * @return {Object} {baseUrl, baseName, folders:[{name,url}], configUrl, triggerInstalled, message}
  */
@@ -112,6 +113,13 @@ function setupWorkspace(form) {
   var geminiKey = (form.geminiKey == null ? '' : String(form.geminiKey)).trim();
   if (geminiKey) {
     PropertiesService.getUserProperties().setProperty('GEMINI_API_KEY', geminiKey);
+  }
+
+  // 5b) 各自のDiscord Webhook URLが入力されていれば UserProperties に保存（訪問者ごと）
+  //     通知先を他人と共有させないため、Script Properties ではなく UserProperties に保存する
+  var discordWebhookUrl = (form.discordWebhookUrl == null ? '' : String(form.discordWebhookUrl)).trim();
+  if (discordWebhookUrl) {
+    PropertiesService.getUserProperties().setProperty('DISCORD_WEBHOOK_URL', discordWebhookUrl);
   }
 
   // 6) この訪問者の30分毎トリガーを登録（各自所有）。失敗してもフォルダ作成は成功扱い。
@@ -257,7 +265,7 @@ function stripBulletLines(text) {
  * 基底フォルダや lograku.md が無い、または解析に失敗した場合は exists:false の既定を返す。
  * @return {Object} {
  *   exists, rows:[{day, period, subject}], keywords:{科目名:'kw・kw'},
- *   minutesGuide, namingRule, overrides:{科目名:{minutes, naming}}, hasUserKey
+ *   minutesGuide, namingRule, overrides:{科目名:{minutes, naming}}, hasUserKey, hasUserWebhook
  * }
  */
 function getCurrentConfig() {
@@ -268,15 +276,22 @@ function getCurrentConfig() {
     minutesGuide: '',
     namingRule: '',
     overrides: {},
-    hasUserKey: false
+    hasUserKey: false,
+    hasUserWebhook: false
   };
 
-  // 各自の Gemini キーが UserProperties に保存済みか（値は返さない）
+  // 各自の Gemini キー / Discord Webhook URL が UserProperties に保存済みか（値は返さない）
   try {
     var key = PropertiesService.getUserProperties().getProperty('GEMINI_API_KEY');
     result.hasUserKey = !!(key && String(key).trim());
   } catch (e) {
     result.hasUserKey = false;
+  }
+  try {
+    var webhookUrl = PropertiesService.getUserProperties().getProperty('DISCORD_WEBHOOK_URL');
+    result.hasUserWebhook = !!(webhookUrl && String(webhookUrl).trim());
+  } catch (e) {
+    result.hasUserWebhook = false;
   }
 
   var base = getBaseFolder(false);
