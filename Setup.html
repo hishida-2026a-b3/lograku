@@ -54,7 +54,7 @@
     }
     .step.done:not(:last-child)::after { background: var(--done-blue); }
     .step .circle {
-      width: 37px; height: 37px; border-radius: 50%; background: #e9ebee;
+      width: 40px; height: 40px; border-radius: 50%; background: #e9ebee;
       border: none; color: var(--muted);
       display: flex; align-items: center; justify-content: center;
       font-weight: 700; font-size: 16.8px; position: relative; z-index: 1;
@@ -97,6 +97,8 @@
     }
     .schedule-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
     .schedule-table tr:last-child td { border-bottom: none; }
+    .subject-cell { display: flex; align-items: flex-start; gap: 8px; }
+    .subject-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
     select, input[type="text"], textarea {
       width: 100%; padding: 9px 12px; border: 1px solid var(--border-strong);
       border-radius: 10px; font-size: 13.4px; color: var(--ink); background: #fff; font-family: inherit;
@@ -138,7 +140,7 @@
       align-items: center; justify-content: center; z-index: 50;
     }
     .modal-backdrop.open { display: flex; }
-    .modal-box { background: #fff; border-radius: 16px; padding: 28px; width: 360px; max-width: 90vw; box-shadow: 0 12px 32px rgba(0,0,0,.18); }
+    .modal-box { background: #fff; border-radius: 16px; padding: 32px; width: 600px; max-width: 90vw; box-shadow: 0 12px 32px rgba(0,0,0,.18); }
     .modal-box h3 { margin: 0 0 4px; font-size: 16px; }
     .modal-box .field-note { margin: 0 0 16px; }
     .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
@@ -204,10 +206,9 @@
 
       <ol class="stepper" id="stepper">
         <li class="step active" data-step="1" onclick="goToStep(1)"><span class="circle">1</span><span class="label">時間割</span></li>
-        <li class="step" data-step="2" onclick="goToStep(2)"><span class="circle">2</span><span class="label">分類ヒント</span></li>
-        <li class="step" data-step="3" onclick="goToStep(3)"><span class="circle">3</span><span class="label">ルール設定</span></li>
-        <li class="step" data-step="4" onclick="goToStep(4)"><span class="circle">4</span><span class="label">詳細設定</span></li>
-        <li class="step" data-step="5" onclick="goToStep(5)"><span class="circle">5</span><span class="label">確認</span></li>
+        <li class="step" data-step="2" onclick="goToStep(2)"><span class="circle">2</span><span class="label">ルール設定</span></li>
+        <li class="step" data-step="3" onclick="goToStep(3)"><span class="circle">3</span><span class="label">詳細設定</span></li>
+        <li class="step" data-step="4" onclick="goToStep(4)"><span class="circle">4</span><span class="label">確認</span></li>
       </ol>
 
       <div class="main-row">
@@ -240,31 +241,14 @@
           </div>
         </section>
 
-        <!-- STEP 2: 分類ヒント -->
+        <!-- STEP 2: ルール設定 -->
         <section class="card step-panel" data-step="2" hidden>
-          <div class="card-head">
-            <div class="icon-badge" style="background:var(--green-bg);color:var(--green);">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-            <div>
-              <h2>② 分類ヒント（任意）</h2>
-              <p>録音や文字起こしをどの科目に振り分けるか自動判定するときの手がかりになる言葉です。その科目の授業でよく出る専門用語や人名・固有名詞を登録しておくと、分類の精度が上がります。時間割を入れると科目ごとに欄が出ます。</p>
-            </div>
-          </div>
-          <table class="schedule-table">
-            <thead><tr><th style="width:35%">科目</th><th>分類キーワード（複数入れる場合は「・」で区切る）</th></tr></thead>
-            <tbody id="keywords"><tr><td colspan="2" class="field-note">時間割に科目を入れるとここに表示されます。</td></tr></tbody>
-          </table>
-        </section>
-
-        <!-- STEP 3: ルール設定 -->
-        <section class="card step-panel" data-step="3" hidden>
           <div class="card-head">
             <div class="icon-badge" style="background:var(--orange-bg);color:var(--orange);">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="m16.5 3.5 4 4L7 21l-5 1 1-5 13.5-13.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
             </div>
             <div>
-              <h2>③ ルール設定（任意）</h2>
+              <h2>② ルール設定（任意）</h2>
               <p>議事録の書き方やファイル名のルールを設定します。空欄なら標準のルールが使われます。</p>
             </div>
           </div>
@@ -278,15 +262,15 @@
           </div>
         </section>
 
-        <!-- STEP 4: 詳細設定 -->
-        <section class="card step-panel" data-step="4" hidden>
+        <!-- STEP 3: 詳細設定 -->
+        <section class="card step-panel" data-step="3" hidden>
           <div class="card-head">
             <div class="icon-badge" style="background:var(--purple-bg);color:var(--purple);">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2m0 14v2m9-9h-2M5 12H3m14.7-6.7-1.4 1.4M7.7 16.3 6.3 17.7m0-11.4 1.4 1.4m9 9 1.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
             </div>
             <div>
-              <h2>④ 詳細設定（任意）</h2>
-              <p>科目ごとにルールを上書きしたい場合に設定します。空欄の科目は③の共通ルールが使われます。</p>
+              <h2>③ 詳細設定（任意）</h2>
+              <p>科目ごとにルールを上書きしたい場合に設定します。空欄の科目は②の共通ルールが使われます。</p>
             </div>
           </div>
           <table class="schedule-table">
@@ -295,14 +279,14 @@
           </table>
         </section>
 
-        <!-- STEP 5: 確認 -->
-        <section class="card step-panel" data-step="5" hidden>
+        <!-- STEP 4: 確認 -->
+        <section class="card step-panel" data-step="4" hidden>
           <div class="card-head">
             <div class="icon-badge" style="background:var(--pink-bg);color:var(--pink);">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="15" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M11.5 12 20 3.5M17 7l2 2M20 3.5 22 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div>
-              <h2>⑤ Geminiキー（任意）／確認</h2>
+              <h2>④ Geminiキー（任意）／確認</h2>
               <p>個人のAPIキーを使う場合に入力します。空欄でも設定を進められます。</p>
             </div>
           </div>
@@ -337,7 +321,12 @@
       <h3 id="modalTitle">月曜日 1限</h3>
       <p class="field-note">この時限に登録する科目名を入力してください。</p>
       <form id="modalForm" onsubmit="saveCellModal(); return false;">
-        <input type="text" id="modalSubjectInput" placeholder="例: 物理">
+        <input type="text" id="modalSubjectInput" placeholder="例: 物理" oninput="onModalSubjectInput()">
+        <div class="field-block" style="margin-top:14px;">
+          <label>分類キーワード（任意・「・」で区切って複数可）</label>
+          <input type="text" id="modalKeywordInput" placeholder="例: 力・運動方程式・速度・エネルギー">
+          <p class="field-note" style="margin-top:4px;">録音や文字起こしをこの科目だと自動判定するときの手がかりになる言葉です。</p>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn-outline" onclick="closeCellModal()"><b>キャンセル</b></button>
           <button type="submit" class="btn-primary">保存</button>
@@ -354,6 +343,7 @@
 
     // ---------- 時間割グリッド ----------
     var scheduleRows = []; // {day, period, subject}
+    var subjectKeywords = {}; // {subject: '分類キーワード'}
     var COLOR_PALETTE = ['#2f6bff', '#22c55e', '#a855f7', '#ec4899', '#f97316', '#14b8a6', '#ef4444', '#6366f1'];
     var modalDay = null, modalPeriod = null;
 
@@ -402,6 +392,7 @@
       var entry = findEntry(day, period);
       document.getElementById('modalTitle').textContent = day + '曜日 ' + period + '限';
       document.getElementById('modalSubjectInput').value = entry ? entry.subject : '';
+      document.getElementById('modalKeywordInput').value = entry ? (subjectKeywords[entry.subject] || '') : '';
       document.getElementById('modalDeleteBtn').style.display = entry ? '' : 'none';
       document.getElementById('cellModal').classList.add('open');
       document.getElementById('modalSubjectInput').focus();
@@ -409,6 +400,14 @@
 
     function closeCellModal() {
       document.getElementById('cellModal').classList.remove('open');
+    }
+
+    // 同じ科目を別のコマにも追加するとき、既に登録済みのキーワードを自動で呼び出す
+    function onModalSubjectInput() {
+      var kwInput = document.getElementById('modalKeywordInput');
+      if (kwInput.value.trim()) return;
+      var subject = document.getElementById('modalSubjectInput').value.trim();
+      if (subject && subjectKeywords[subject]) kwInput.value = subjectKeywords[subject];
     }
 
     function saveCellModal() {
@@ -423,6 +422,8 @@
       } else {
         scheduleRows.push({ day: modalDay, period: modalPeriod, subject: subject });
       }
+      var keyword = document.getElementById('modalKeywordInput').value.trim();
+      if (keyword) subjectKeywords[subject] = keyword;
       closeCellModal();
       renderGrid();
       refreshSections();
@@ -453,32 +454,10 @@
       return parts.join('・');
     }
 
-    // 科目入力／行削除のたびに、科目に連動する2つの表（分類ヒント・科目別の詳しい設定）を作り直す。
+    // 科目入力／行削除のたびに、科目別の詳しい設定の表を作り直す。
     function refreshSections() {
-      refreshKeywords();
       refreshOverrides();
       updateNextButtonLabel();
-    }
-
-    function refreshKeywords() {
-      var subs = collectSubjects();
-      var tbody = document.getElementById('keywords');
-      var prev = {};
-      var existing = tbody.querySelectorAll('input.kw');
-      for (var e = 0; e < existing.length; e++) prev[existing[e].getAttribute('data-subject')] = existing[e].value;
-
-      tbody.innerHTML = '';
-      if (subs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="2" class="field-note">時間割に科目を入れるとここに表示されます。</td></tr>';
-        return;
-      }
-      for (var i = 0; i < subs.length; i++) {
-        var tr = document.createElement('tr');
-        var val = prev[subs[i]] ? prev[subs[i]].replace(/"/g, '&quot;') : '';
-        tr.innerHTML = '<td><b>' + subs[i] + '</b><div class="field-note" style="margin:2px 0 0;">' + subjectScheduleLabel(subs[i]) + '</div></td>' +
-          '<td><input type="text" class="kw" data-subject="' + subs[i] + '" value="' + val + '" placeholder="例: 力・運動方程式・速度・エネルギー"></td>';
-        tbody.appendChild(tr);
-      }
     }
 
     function refreshOverrides() {
@@ -500,7 +479,8 @@
         var tr = document.createElement('tr');
         var vMin = prevMin[subs[i]] ? prevMin[subs[i]].replace(/"/g, '&quot;') : '';
         var vNam = prevNam[subs[i]] ? prevNam[subs[i]].replace(/"/g, '&quot;') : '';
-        tr.innerHTML = '<td><b>' + subs[i] + '</b><div class="field-note" style="margin:2px 0 0;">' + subjectScheduleLabel(subs[i]) + '</div></td>' +
+        tr.innerHTML = '<td><span class="subject-cell"><span class="subject-dot" style="background:' + colorForSubject(subs[i]) + '"></span>' +
+          '<span><b>' + subs[i] + '</b><div class="field-note" style="margin:2px 0 0;">' + subjectScheduleLabel(subs[i]) + '</div></span></span></td>' +
           '<td><input type="text" class="ov-min" data-subject="' + subs[i] + '" value="' + vMin + '" placeholder="この科目だけの議事録ルール"></td>' +
           '<td><input type="text" class="ov-nam" data-subject="' + subs[i] + '" value="' + vNam + '" placeholder="この科目だけのファイル名ルール"></td>';
         tbody.appendChild(tr);
@@ -525,7 +505,7 @@
       });
 
       var nextBtn = document.getElementById('nextBtn');
-      if (n < 5) {
+      if (n < 4) {
         nextBtn.style.display = '';
         nextBtn.disabled = false;
         nextBtn.onclick = goNext;
@@ -538,19 +518,14 @@
       backBtn.disabled = n === 1;
     }
 
-    // 任意項目のステップ(②③④)で何も入力されていない場合は「次へ」ではなく「スキップ」と表示する
+    // 任意項目のステップ(②③)で何も入力されていない場合は「次へ」ではなく「スキップ」と表示する
     function isStepEmpty(n) {
       if (n === 2) {
-        var kwInputs = document.querySelectorAll('#keywords input.kw');
-        for (var i = 0; i < kwInputs.length; i++) if (kwInputs[i].value.trim()) return false;
-        return true;
-      }
-      if (n === 3) {
         var guide = document.getElementById('minutesGuide');
         var naming = document.getElementById('namingRule');
         return !guide.value.trim() && !naming.value.trim();
       }
-      if (n === 4) {
+      if (n === 3) {
         var ovInputs = document.querySelectorAll('#overrides input.ov-min, #overrides input.ov-nam');
         for (var j = 0; j < ovInputs.length; j++) if (ovInputs[j].value.trim()) return false;
         return true;
@@ -565,7 +540,7 @@
 
     function updateNextButtonLabel() {
       var n = currentStep;
-      if (n >= 5) return;
+      if (n >= 4) return;
       var nextBtn = document.getElementById('nextBtn');
       if (n === 1) {
         nextBtn.disabled = !hasScheduleEntry();
@@ -578,7 +553,7 @@
     }
 
     function goNext() {
-      if (currentStep < 5) goToStep(currentStep + 1);
+      if (currentStep < 4) goToStep(currentStep + 1);
     }
 
     function goBack() {
@@ -594,12 +569,11 @@
         goToStep(1);
         return;
       }
+      var activeSubjects = collectSubjects();
       var keywords = {};
-      var kwInputs = document.querySelectorAll('#keywords input.kw');
-      for (var k = 0; k < kwInputs.length; k++) {
-        var sub = kwInputs[k].getAttribute('data-subject');
-        var v = kwInputs[k].value.trim();
-        if (v) keywords[sub] = v;
+      for (var k = 0; k < activeSubjects.length; k++) {
+        var sub = activeSubjects[k];
+        if (subjectKeywords[sub]) keywords[sub] = subjectKeywords[sub];
       }
       var overrides = {};
       var ovMin = document.querySelectorAll('#overrides input.ov-min');
@@ -724,16 +698,9 @@
     function prefill(cfg) {
       cfg = cfg || {};
       scheduleRows = (cfg.exists && cfg.rows) ? cfg.rows.slice() : [];
+      subjectKeywords = cfg.keywords ? Object.assign({}, cfg.keywords) : {};
       renderGrid();
       refreshSections();
-
-      if (cfg.keywords) {
-        for (var kn in cfg.keywords) {
-          if (!cfg.keywords.hasOwnProperty(kn)) continue;
-          var kwInput = document.querySelector('#keywords input.kw[data-subject="' + cssEscape(kn) + '"]');
-          if (kwInput) kwInput.value = cfg.keywords[kn];
-        }
-      }
 
       if (cfg.overrides) {
         for (var on in cfg.overrides) {
@@ -763,10 +730,10 @@
       return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     }
 
-    // 分類ヒント・ルール設定・詳細設定の入力欄は動的に生成されるため、イベント委譲で入力を検知して
+    // ルール設定・詳細設定の入力欄は動的に生成されるため、イベント委譲で入力を検知して
     // 「次へ」/「スキップ」の文言をリアルタイムに切り替える
     document.addEventListener('input', function (e) {
-      if (e.target.matches('#keywords input.kw, #minutesGuide, #namingRule, #overrides input.ov-min, #overrides input.ov-nam')) {
+      if (e.target.matches('#minutesGuide, #namingRule, #overrides input.ov-min, #overrides input.ov-nam')) {
         updateNextButtonLabel();
       }
     });
