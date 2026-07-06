@@ -4,154 +4,479 @@
   <base target="_top">
   <meta charset="utf-8">
   <style>
-    body { font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; max-width: 760px; margin: 24px auto; padding: 0 16px; color: #222; line-height: 1.6; }
-    h1 { font-size: 20px; }
-    h2 { font-size: 16px; margin-top: 28px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-    p.note { color: #666; font-size: 13px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
-    th, td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 14px; }
-    th { background: #f6f6f6; }
-    select, input[type="text"], textarea { font-size: 14px; padding: 5px; box-sizing: border-box; width: 100%; }
-    textarea { width: 100%; height: 60px; }
-    button { font-size: 14px; padding: 8px 16px; cursor: pointer; border-radius: 6px; border: 1px solid #ccc; background: #fff; }
-    button.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
-    button.primary:disabled { background: #9bbef0; border-color: #9bbef0; cursor: default; }
-    .row-actions { margin: 10px 0; }
-    #result { margin-top: 24px; padding: 14px; border-radius: 8px; display: none; }
-    #result.ok { background: #e8f5e9; border: 1px solid #a5d6a7; }
-    #result.err { background: #fdecea; border: 1px solid #f5b5b0; }
-    #result ul { margin: 8px 0; }
-    a { color: #1a73e8; }
-    .del { color: #c00; cursor: pointer; border: none; background: none; font-size: 16px; }
-    details { margin-top: 28px; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; }
-    details > summary { font-size: 16px; font-weight: bold; cursor: pointer; padding: 4px 0; }
-    details[open] > summary { border-bottom: 1px solid #eee; margin-bottom: 8px; padding-bottom: 8px; }
-    details p.note { margin-top: 6px; }
+    :root {
+      --blue: #1476fb;
+      --blue-dark: #0969da;
+      --done-blue: #2f6bff;
+      --ink: #182033;
+      --muted: #697386;
+      --border: #eef0f4;
+      --border-strong: #dde1e7;
+      --bg: #f6f7f8;
+      --green: #18a058; --green-bg: #eafaf0;
+      --orange: #f97316; --orange-bg: #fff6ea;
+      --purple: #7c3aed; --purple-bg: #f5f0ff;
+      --pink: #ff355d; --pink-bg: #fff0f3;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .app { display: flex; height: 100vh; justify-content: center; overflow: hidden; }
+
+    /* ---------- main content ---------- */
+    /* main-row scrolls internally so the footer buttons always stay in view without page scroll */
+    .content {
+      flex: 1; min-width: 0; max-width: 1292px;
+      display: flex; flex-direction: column; height: 100%;
+      padding: 20px 48px 20px;
+    }
+    .page-header h1 {
+      font-size: 22px; font-weight: 700; margin: 0 0 2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .page-header p { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+
+    /* ---------- stepper ---------- */
+    .stepper { display: flex; list-style: none; margin: 0 0 18px; padding: 0; width: 100%; flex-shrink: 0; }
+    .step {
+      position: relative; flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 8px; background: none; border: none; font: inherit;
+      cursor: pointer; color: inherit;
+    }
+    .step:not(:last-child)::after {
+      content: ''; position: absolute; top: 18px; left: 50%; width: 100%;
+      height: 3px; border-radius: 999px; background: #e9ebee; z-index: 0;
+    }
+    .step.done:not(:last-child)::after { background: var(--done-blue); }
+    .step .circle {
+      width: 37px; height: 37px; border-radius: 50%; background: #e9ebee;
+      border: none; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16.8px; position: relative; z-index: 1;
+    }
+    .step.active .circle { width: 40px; height: 40px; background: #fff; border: 2px solid var(--blue); color: var(--blue); font-size: 18.5px; }
+    .step.done .circle { background: var(--done-blue); color: #fff; }
+    .step.done .circle svg { width: 24px; height: 24px; }
+    .step .label { font-size: 12.6px; font-weight: 700; color: var(--muted); }
+    .step.active .label { color: var(--blue-dark); }
+    .step.done .label { color: var(--done-blue); }
+
+    /* ---------- layout row ---------- */
+    .main-row {
+      display: flex; gap: 24px; align-items: flex-start;
+      flex: 1; min-height: 0; overflow-y: auto; padding: 2px 2px 4px;
+    }
+    .card {
+      background: #fff; border-radius: 16px;
+      padding: 20px 24px;
+    }
+    .schedule-card, .step-panel { flex: 1; min-width: 0; }
+
+    .schedule-head-row { display: flex; gap: 12px; align-items: stretch; margin-bottom: 12px; }
+    .card-head { display: flex; gap: 12px; margin-bottom: 14px; }
+    .schedule-head-row .card-head { gap: 24px; flex-shrink: 0; width: 449px; max-width: 100%; margin-bottom: 0; }
+    .icon-badge {
+      width: 42px; height: 42px; border-radius: 12px; background: #eaf2ff;
+      color: var(--blue); flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    }
+    .card-head h2 { font-size: 16.5px; font-weight: 700; margin: 0 0 4px; }
+    .card-head p { font-size: 12.6px; color: var(--muted); margin: 0; }
+
+    table.schedule-table {
+      width: 100%; border-collapse: collapse; border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 16px; overflow: hidden;
+    }
+    .schedule-table th {
+      background: #f7f8fa; text-align: left; font-size: 12.6px; font-weight: 700;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    .schedule-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    .schedule-table tr:last-child td { border-bottom: none; }
+    select, input[type="text"], textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border-strong);
+      border-radius: 10px; font-size: 13.4px; color: var(--ink); background: #fff; font-family: inherit;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    button.del { border: none; background: none; color: #e5484d; cursor: pointer; font-size: 16px; line-height: 1; }
+
+    /* ---------- schedule grid ---------- */
+    .schedule-grid-wrap { overflow-x: auto; margin-bottom: 12px; }
+    .schedule-grid {
+      display: grid; grid-template-columns: 56px repeat(7, minmax(96px, 1fr));
+      gap: 6px; min-width: 780px;
+    }
+    .grid-header, .grid-period-label {
+      background: #f7f8fa; border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; color: var(--ink); font-size: 12.6px; padding: 6px 4px;
+    }
+    .grid-period-label { color: var(--muted); }
+    .grid-cell {
+      min-height: 52px; border-radius: 10px; position: relative; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      padding: 6px; font-weight: 700; font-size: 12.6px; line-height: 1.25;
+    }
+    .grid-cell.empty {
+      border: 1.5px dashed var(--border-strong); background: #fafbfc; color: #c2c6ca; font-size: 20px;
+    }
+    .grid-cell.empty:hover { border-color: var(--blue); color: var(--blue); background: #f5f9ff; }
+    .grid-cell.filled { color: #fff; }
+    .grid-cell .cell-remove {
+      position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center;
+      font-size: 12px; line-height: 1;
+    }
+    .grid-cell .cell-remove:hover { background: rgba(255,255,255,.55); }
+
+    /* ---------- cell edit modal ---------- */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(20,25,40,.35); display: none;
+      align-items: center; justify-content: center; z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 16px; padding: 28px; width: 360px; max-width: 90vw; box-shadow: 0 12px 32px rgba(0,0,0,.18); }
+    .modal-box h3 { margin: 0 0 4px; font-size: 16px; }
+    .modal-box .field-note { margin: 0 0 16px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-actions .btn-outline { max-width: none; }
+    .modal-delete {
+      display: block; width: 100%; text-align: center; background: none; border: none;
+      color: #e5484d; font-size: 12.6px; cursor: pointer; padding: 10px 0 0;
+    }
+
+    .hint-box { flex: 1; min-width: 0; background: #eef5fd; border-radius: 12px; padding: 12px 18px; position: relative; overflow: hidden; }
+    .hint-box h3 { font-size: 13.4px; font-weight: 700; color: var(--blue-dark); margin: 0 0 8px; }
+    .hint-box ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .hint-box li { display: flex; align-items: flex-start; gap: 8px; font-size: 12.6px; }
+    .hint-box .check { color: var(--blue-dark); flex-shrink: 0; margin-top: 1px; }
+
+    /* ---------- footer ---------- */
+    .footer-bar {
+      display: flex; justify-content: space-between; gap: 16px;
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .btn-outline {
+      flex: 1; max-width: 252px; min-height: 46px; border: 1px solid var(--border-strong); background: #fff;
+      border-radius: 12px; padding: 12px; cursor: pointer; text-align: center;
+      box-shadow: 0 2px 2px rgba(21,27,35,.03);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .btn-outline b { display: block; font-size: 12.6px; }
+    .btn-outline:disabled { opacity: .5; cursor: default; }
+    .btn-primary {
+      flex: 1; background: var(--blue); color: #fff; border: none; border-radius: 12px;
+      padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:disabled { opacity: .5; cursor: default; }
+    .footer-secondary { margin-top: 12px; font-size: 12.6px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+    .footer-secondary button {
+      font-size: 12.6px; padding: 6px 12px; cursor: pointer; border-radius: 8px;
+      border: 1px solid var(--border-strong); background: #fff;
+    }
+
+    .field-block { margin-bottom: 20px; }
+    .field-block > label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .field-note { font-size: 12.6px; color: var(--muted); margin: 0 0 10px; }
+
+    #result { margin-top: 24px; padding: 14px 16px; border-radius: 12px; display: none; font-size: 13.4px; }
+    #result.ok { background: #eafaf0; border: 1px solid #b6e8cc; }
+    #result.err { background: #fff0f3; border: 1px solid #ffc3cf; }
+    #result ul { margin: 8px 0 0; padding-left: 18px; }
+    #result a { color: var(--blue-dark); }
+
+    @media (max-width: 980px) {
+      .main-row { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
-  <h1>ログらく 初期設定</h1>
-  <p class="note">
-    時間割を入れて「作成する」を押すと、<b>あなたの Google ドライブ</b>に <b>ログらく</b> フォルダ・<b>_inbox</b>・科目フォルダ・設定ファイル(lograku.md)が作られ、
-    <b>30分ごとの自動処理</b>も登録されます。あとは <b>ログらく/_inbox</b> に授業の録音や文字起こしを置くだけで、数分で科目フォルダに議事録が生成されます。
-  </p>
+  <div class="app">
+    <main class="content">
+      <div class="page-header">
+        <h1>初期設定</h1>
+        <p>5つのステップで、ログらくの自動処理を設定します。</p>
+      </div>
 
-  <h2>① 時間割</h2>
-  <p class="note">録音した時刻と照合して科目を推定するのに使います。同じ科目を何コマ書いてもOK。</p>
-  <table>
-    <thead>
-      <tr><th style="width:120px">曜日</th><th style="width:90px">時限</th><th>科目名</th><th style="width:40px"></th></tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
-  <div class="row-actions">
-    <button type="button" onclick="addRow()">＋ 行を追加</button>
+      <ol class="stepper" id="stepper">
+        <li class="step active" data-step="1" onclick="goToStep(1)"><span class="circle">1</span><span class="label">時間割</span></li>
+        <li class="step" data-step="2" onclick="goToStep(2)"><span class="circle">2</span><span class="label">分類ヒント</span></li>
+        <li class="step" data-step="3" onclick="goToStep(3)"><span class="circle">3</span><span class="label">ルール設定</span></li>
+        <li class="step" data-step="4" onclick="goToStep(4)"><span class="circle">4</span><span class="label">詳細設定</span></li>
+        <li class="step" data-step="5" onclick="goToStep(5)"><span class="circle">5</span><span class="label">確認</span></li>
+      </ol>
+
+      <div class="main-row">
+        <!-- STEP 1: 時間割 -->
+        <section class="card schedule-card step-panel" data-step="1">
+          <div class="schedule-head-row">
+            <div class="card-head">
+              <div class="icon-badge">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div>
+                <h2>時間割を登録しましょう</h2>
+                <p>録音した時刻と照合して科目を推定するのに使います。</p>
+                <p>同じ科目を何コマ書いてもOKです。</p>
+              </div>
+            </div>
+
+            <div class="hint-box">
+              <h3>時間割を登録すると…</h3>
+              <ul>
+                <li><span class="check">✔</span> 科目フォルダが自動で作成されます</li>
+                <li><span class="check">✔</span> 録音・文字起こしを自動で分類します</li>
+                <li><span class="check">✔</span> 30分ごとの自動処理が有効になります</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="schedule-grid-wrap">
+            <div class="schedule-grid" id="scheduleGrid"></div>
+          </div>
+        </section>
+
+        <!-- STEP 2: 分類ヒント -->
+        <section class="card step-panel" data-step="2" hidden>
+          <div class="card-head">
+            <div class="icon-badge" style="background:var(--green-bg);color:var(--green);">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <h2>② 分類ヒント（任意）</h2>
+              <p>録音や文字起こしをどの科目に振り分けるか自動判定するときの手がかりになる言葉です。その科目の授業でよく出る専門用語や人名・固有名詞を登録しておくと、分類の精度が上がります。時間割を入れると科目ごとに欄が出ます。</p>
+            </div>
+          </div>
+          <table class="schedule-table">
+            <thead><tr><th style="width:35%">科目</th><th>分類キーワード（複数入れる場合は「・」で区切る）</th></tr></thead>
+            <tbody id="keywords"><tr><td colspan="2" class="field-note">時間割に科目を入れるとここに表示されます。</td></tr></tbody>
+          </table>
+        </section>
+
+        <!-- STEP 3: ルール設定 -->
+        <section class="card step-panel" data-step="3" hidden>
+          <div class="card-head">
+            <div class="icon-badge" style="background:var(--orange-bg);color:var(--orange);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="m16.5 3.5 4 4L7 21l-5 1 1-5 13.5-13.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <h2>③ ルール設定（任意）</h2>
+              <p>議事録の書き方やファイル名のルールを設定します。空欄なら標準のルールが使われます。</p>
+            </div>
+          </div>
+          <div class="field-block">
+            <label>議事録の書き方</label>
+            <textarea id="minutesGuide" placeholder="例: 授業の復習用。今日の要点3〜5個、重要用語、確認問題3問。だ・である調で約1000字。"></textarea>
+          </div>
+          <div class="field-block">
+            <label>ファイル名の付け方</label>
+            <input type="text" id="namingRule" placeholder="例: 日付_科目_内容 の順">
+          </div>
+        </section>
+
+        <!-- STEP 4: 詳細設定 -->
+        <section class="card step-panel" data-step="4" hidden>
+          <div class="card-head">
+            <div class="icon-badge" style="background:var(--purple-bg);color:var(--purple);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2m0 14v2m9-9h-2M5 12H3m14.7-6.7-1.4 1.4M7.7 16.3 6.3 17.7m0-11.4 1.4 1.4m9 9 1.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            </div>
+            <div>
+              <h2>④ 詳細設定（任意）</h2>
+              <p>科目ごとにルールを上書きしたい場合に設定します。空欄の科目は③の共通ルールが使われます。</p>
+            </div>
+          </div>
+          <table class="schedule-table">
+            <thead><tr><th style="width:22%">科目</th><th>議事録の書き方（上書き）</th><th>ファイル名のつけ方（上書き）</th></tr></thead>
+            <tbody id="overrides"><tr><td colspan="3" class="field-note">時間割に科目を入れるとここに表示されます。</td></tr></tbody>
+          </table>
+        </section>
+
+        <!-- STEP 5: 確認 -->
+        <section class="card step-panel" data-step="5" hidden>
+          <div class="card-head">
+            <div class="icon-badge" style="background:var(--pink-bg);color:var(--pink);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="15" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M11.5 12 20 3.5M17 7l2 2M20 3.5 22 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <h2>⑤ Geminiキー（任意）／確認</h2>
+              <p>個人のAPIキーを使う場合に入力します。空欄でも設定を進められます。</p>
+            </div>
+          </div>
+          <div class="field-block">
+            <label>あなたのGeminiキー</label>
+            <input type="text" id="geminiKey" placeholder="例: AIza... （空欄ならオーナー共有キーを使います）">
+          </div>
+
+          <div class="field-block" style="margin-top:28px;">
+            <button type="button" class="btn-primary" id="submitBtn" onclick="submitForm()" style="max-width:280px;">この内容で作成する</button>
+          </div>
+
+          <div class="footer-secondary">
+            設定済みの方の操作：
+            <button type="button" id="runNowBtn" onclick="runNow()">▶ 今すぐ処理</button>
+            <button type="button" id="stopBtn" onclick="stopAutomation()">⏸ 自動処理を止める</button>
+          </div>
+
+          <div id="result"></div>
+        </section>
+      </div>
+
+      <div class="footer-bar" id="footerBar">
+        <button type="button" class="btn-outline" id="backBtn" onclick="goBack()" disabled><b>戻る</b></button>
+        <button type="button" class="btn-primary" id="nextBtn" onclick="goNext()">次へ <span>›</span></button>
+      </div>
+    </main>
   </div>
 
-  <h2>② 科目ごとの分類ヒント（任意）</h2>
-  <p class="note">「この科目はこういう言葉が出る」というキーワードを書くと、分類の精度が上がります。時間割を入れると自動で欄が出ます。</p>
-  <table>
-    <thead><tr><th style="width:180px">科目</th><th>よく出る言葉（・や、で区切る）</th></tr></thead>
-    <tbody id="keywords"><tr><td colspan="2" class="note">時間割に科目を入れるとここに表示されます。</td></tr></tbody>
-  </table>
-
-  <h2>③ 議事録・ファイル名のルール（任意）</h2>
-  <p class="note">空欄なら標準のルールが使われます。これは全科目共通の既定です。</p>
-  <p>議事録の書き方:</p>
-  <textarea id="minutesGuide" placeholder="例: 授業の復習用。今日の要点3〜5個、重要用語、確認問題3問。だ・である調で約1000字。"></textarea>
-  <p>ファイル名の付け方:</p>
-  <input type="text" id="namingRule" placeholder="例: 日付_科目_内容 の順">
-
-  <details id="overridesSection">
-    <summary>④ 科目ごとの詳しい設定（任意）</summary>
-    <p class="note">科目ごとに議事録の書き方やファイル名のつけ方を変えたいときだけ入力します。空欄の科目は③の共通ルールが使われます。時間割を入れると自動で欄が出ます。</p>
-    <table>
-      <thead><tr><th style="width:140px">科目</th><th>議事録の書き方（上書き）</th><th>ファイル名のつけ方（上書き）</th></tr></thead>
-      <tbody id="overrides"><tr><td colspan="3" class="note">時間割に科目を入れるとここに表示されます。</td></tr></tbody>
-    </table>
-  </details>
-
-  <details id="keySection">
-    <summary>⑤ 自分のGeminiキー（任意）</summary>
-    <p class="note">空ならオーナー共有キーで動きます。各自のキーを入れると各自の無料枠で処理されます。</p>
-    <input type="text" id="geminiKey" placeholder="例: AIza... （空欄ならオーナー共有キーを使います）">
-  </details>
-
-  <div class="row-actions" style="margin-top:24px">
-    <button type="button" class="primary" id="submitBtn" onclick="submitForm()">この内容で作成する</button>
+  <div class="modal-backdrop" id="cellModal" onclick="if (event.target === this) closeCellModal();">
+    <div class="modal-box">
+      <h3 id="modalTitle">月曜日 1限</h3>
+      <p class="field-note">この時限に登録する科目名を入力してください。</p>
+      <form id="modalForm" onsubmit="saveCellModal(); return false;">
+        <input type="text" id="modalSubjectInput" placeholder="例: 物理">
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick="closeCellModal()"><b>キャンセル</b></button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+      <button type="button" class="modal-delete" id="modalDeleteBtn" onclick="removeEntry(modalDay, modalPeriod)">この時限の登録を削除</button>
+    </div>
   </div>
-
-  <div class="row-actions" style="margin-top:4px; font-size:13px; color:#666;">
-    設定済みの方の操作：
-    <button type="button" id="runNowBtn" onclick="runNow()">▶ 今すぐ処理</button>
-    <button type="button" id="stopBtn" onclick="stopAutomation()">⏸ 自動処理を止める</button>
-  </div>
-
-  <div id="result"></div>
 
   <script>
     var DAYS = ['月', '火', '水', '木', '金', '土', '日'];
-    var PERIODS = ['1', '2', '3', '4', '5', '6'];
+    var PERIODS = ['1', '2', '3', '4', '5', '6', '7'];
+    var currentStep = 1;
 
-    function makeSelect(options, cls) {
-      var s = '<select class="' + cls + '">';
-      for (var i = 0; i < options.length; i++) s += '<option>' + options[i] + '</option>';
-      s += '</select>';
-      return s;
+    // ---------- 時間割グリッド ----------
+    var scheduleRows = []; // {day, period, subject}
+    var COLOR_PALETTE = ['#2f6bff', '#22c55e', '#a855f7', '#ec4899', '#f97316', '#14b8a6', '#ef4444', '#6366f1'];
+    var modalDay = null, modalPeriod = null;
+
+    // 同じ科目名には常に同じ色を割り当てる（見た目で科目を区別しやすくするため）
+    function colorForSubject(subject) {
+      var hash = 0;
+      for (var i = 0; i < subject.length; i++) hash = (hash * 31 + subject.charCodeAt(i)) >>> 0;
+      return COLOR_PALETTE[hash % COLOR_PALETTE.length];
     }
 
-    function addRow(day, period, subject) {
-      var tbody = document.getElementById('rows');
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td>' + makeSelect(DAYS, 'day') + '</td>' +
-        '<td>' + makeSelect(PERIODS, 'period') + '</td>' +
-        '<td><input type="text" class="subject" placeholder="例: 物理"></td>' +
-        '<td><button type="button" class="del" title="削除">×</button></td>';
-      tbody.appendChild(tr);
-      if (day) tr.querySelector('.day').value = day;
-      if (period) tr.querySelector('.period').value = period;
-      if (subject) tr.querySelector('.subject').value = subject;
-      tr.querySelector('.del').addEventListener('click', function () {
-        tr.parentNode.removeChild(tr);
-        refreshSections();
-      });
-      tr.querySelector('.subject').addEventListener('input', refreshSections);
+    function findEntry(day, period) {
+      for (var i = 0; i < scheduleRows.length; i++) {
+        if (scheduleRows[i].day === day && scheduleRows[i].period === period) return scheduleRows[i];
+      }
+      return null;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderGrid() {
+      var grid = document.getElementById('scheduleGrid');
+      var html = '<div class="grid-header"></div>';
+      for (var d = 0; d < DAYS.length; d++) html += '<div class="grid-header">' + DAYS[d] + '</div>';
+      for (var p = 0; p < PERIODS.length; p++) {
+        html += '<div class="grid-period-label">' + PERIODS[p] + '限</div>';
+        for (var d2 = 0; d2 < DAYS.length; d2++) {
+          var entry = findEntry(DAYS[d2], PERIODS[p]);
+          if (entry) {
+            var color = colorForSubject(entry.subject);
+            html += '<div class="grid-cell filled" style="background:' + color + '" onclick="openCellModal(\'' + DAYS[d2] + '\',\'' + PERIODS[p] + '\')">' +
+              '<span class="cell-remove" title="削除" onclick="event.stopPropagation(); removeEntry(\'' + DAYS[d2] + '\',\'' + PERIODS[p] + '\')">✕</span>' +
+              escapeHtml(entry.subject) + '</div>';
+          } else {
+            html += '<div class="grid-cell empty" onclick="openCellModal(\'' + DAYS[d2] + '\',\'' + PERIODS[p] + '\')">＋</div>';
+          }
+        }
+      }
+      grid.innerHTML = html;
+    }
+
+    function openCellModal(day, period) {
+      modalDay = day;
+      modalPeriod = period;
+      var entry = findEntry(day, period);
+      document.getElementById('modalTitle').textContent = day + '曜日 ' + period + '限';
+      document.getElementById('modalSubjectInput').value = entry ? entry.subject : '';
+      document.getElementById('modalDeleteBtn').style.display = entry ? '' : 'none';
+      document.getElementById('cellModal').classList.add('open');
+      document.getElementById('modalSubjectInput').focus();
+    }
+
+    function closeCellModal() {
+      document.getElementById('cellModal').classList.remove('open');
+    }
+
+    function saveCellModal() {
+      var subject = document.getElementById('modalSubjectInput').value.trim();
+      if (!subject) {
+        removeEntry(modalDay, modalPeriod);
+        return;
+      }
+      var entry = findEntry(modalDay, modalPeriod);
+      if (entry) {
+        entry.subject = subject;
+      } else {
+        scheduleRows.push({ day: modalDay, period: modalPeriod, subject: subject });
+      }
+      closeCellModal();
+      renderGrid();
+      refreshSections();
+    }
+
+    function removeEntry(day, period) {
+      scheduleRows = scheduleRows.filter(function (r) { return !(r.day === day && r.period === period); });
+      closeCellModal();
+      renderGrid();
+      refreshSections();
     }
 
     function collectSubjects() {
       var subs = [];
-      var inputs = document.querySelectorAll('#rows .subject');
-      for (var i = 0; i < inputs.length; i++) {
-        var v = inputs[i].value.trim();
+      for (var i = 0; i < scheduleRows.length; i++) {
+        var v = scheduleRows[i].subject;
         if (v && subs.indexOf(v) < 0) subs.push(v);
       }
       return subs;
+    }
+
+    // 同じ科目名が複数コマにまたがる場合も分かるよう「月1限・水1限」のように曜日と時限を並べる
+    function subjectScheduleLabel(subject) {
+      var parts = [];
+      for (var i = 0; i < scheduleRows.length; i++) {
+        if (scheduleRows[i].subject === subject) parts.push(scheduleRows[i].day + scheduleRows[i].period + '限');
+      }
+      return parts.join('・');
     }
 
     // 科目入力／行削除のたびに、科目に連動する2つの表（分類ヒント・科目別の詳しい設定）を作り直す。
     function refreshSections() {
       refreshKeywords();
       refreshOverrides();
+      updateNextButtonLabel();
     }
 
     function refreshKeywords() {
       var subs = collectSubjects();
       var tbody = document.getElementById('keywords');
-      // 既存入力値を退避
       var prev = {};
       var existing = tbody.querySelectorAll('input.kw');
       for (var e = 0; e < existing.length; e++) prev[existing[e].getAttribute('data-subject')] = existing[e].value;
 
       tbody.innerHTML = '';
       if (subs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="2" class="note">時間割に科目を入れるとここに表示されます。</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="2" class="field-note">時間割に科目を入れるとここに表示されます。</td></tr>';
         return;
       }
       for (var i = 0; i < subs.length; i++) {
         var tr = document.createElement('tr');
         var val = prev[subs[i]] ? prev[subs[i]].replace(/"/g, '&quot;') : '';
-        tr.innerHTML = '<td>' + subs[i] + '</td><td><input type="text" class="kw" data-subject="' + subs[i] + '" value="' + val + '" placeholder="例: 力・運動方程式・速度・エネルギー"></td>';
+        tr.innerHTML = '<td><b>' + subs[i] + '</b><div class="field-note" style="margin:2px 0 0;">' + subjectScheduleLabel(subs[i]) + '</div></td>' +
+          '<td><input type="text" class="kw" data-subject="' + subs[i] + '" value="' + val + '" placeholder="例: 力・運動方程式・速度・エネルギー"></td>';
         tbody.appendChild(tr);
       }
     }
@@ -159,7 +484,6 @@
     function refreshOverrides() {
       var subs = collectSubjects();
       var tbody = document.getElementById('overrides');
-      // 既存入力値を退避（科目ごとに minutes / naming の2つ）
       var prevMin = {};
       var prevNam = {};
       var exMin = tbody.querySelectorAll('input.ov-min');
@@ -169,34 +493,105 @@
 
       tbody.innerHTML = '';
       if (subs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="note">時間割に科目を入れるとここに表示されます。</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="field-note">時間割に科目を入れるとここに表示されます。</td></tr>';
         return;
       }
       for (var i = 0; i < subs.length; i++) {
         var tr = document.createElement('tr');
         var vMin = prevMin[subs[i]] ? prevMin[subs[i]].replace(/"/g, '&quot;') : '';
         var vNam = prevNam[subs[i]] ? prevNam[subs[i]].replace(/"/g, '&quot;') : '';
-        tr.innerHTML = '<td>' + subs[i] + '</td>' +
+        tr.innerHTML = '<td><b>' + subs[i] + '</b><div class="field-note" style="margin:2px 0 0;">' + subjectScheduleLabel(subs[i]) + '</div></td>' +
           '<td><input type="text" class="ov-min" data-subject="' + subs[i] + '" value="' + vMin + '" placeholder="この科目だけの議事録ルール"></td>' +
           '<td><input type="text" class="ov-nam" data-subject="' + subs[i] + '" value="' + vNam + '" placeholder="この科目だけのファイル名ルール"></td>';
         tbody.appendChild(tr);
       }
     }
 
-    function submitForm() {
-      var rows = [];
-      var trs = document.querySelectorAll('#rows tr');
-      for (var i = 0; i < trs.length; i++) {
-        var subject = trs[i].querySelector('.subject').value.trim();
-        if (!subject) continue;
-        rows.push({
-          day: trs[i].querySelector('.day').value,
-          period: trs[i].querySelector('.period').value,
-          subject: subject
-        });
+    // ---------- ステップ切替 ----------
+    function goToStep(n) {
+      currentStep = n;
+      document.querySelectorAll('.step-panel').forEach(function (p) {
+        p.hidden = Number(p.getAttribute('data-step')) !== n;
+      });
+      document.querySelectorAll('.step').forEach(function (el) {
+        var s = Number(el.getAttribute('data-step'));
+        var isDone = s < n;
+        el.classList.toggle('active', s === n);
+        el.classList.toggle('done', isDone);
+        var circle = el.querySelector('.circle');
+        circle.innerHTML = isDone
+          ? '<svg viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+          : String(s);
+      });
+
+      var nextBtn = document.getElementById('nextBtn');
+      if (n < 5) {
+        nextBtn.style.display = '';
+        nextBtn.disabled = false;
+        nextBtn.onclick = goNext;
+        updateNextButtonLabel();
+      } else {
+        nextBtn.style.display = 'none';
       }
+
+      var backBtn = document.getElementById('backBtn');
+      backBtn.disabled = n === 1;
+    }
+
+    // 任意項目のステップ(②③④)で何も入力されていない場合は「次へ」ではなく「スキップ」と表示する
+    function isStepEmpty(n) {
+      if (n === 2) {
+        var kwInputs = document.querySelectorAll('#keywords input.kw');
+        for (var i = 0; i < kwInputs.length; i++) if (kwInputs[i].value.trim()) return false;
+        return true;
+      }
+      if (n === 3) {
+        var guide = document.getElementById('minutesGuide');
+        var naming = document.getElementById('namingRule');
+        return !guide.value.trim() && !naming.value.trim();
+      }
+      if (n === 4) {
+        var ovInputs = document.querySelectorAll('#overrides input.ov-min, #overrides input.ov-nam');
+        for (var j = 0; j < ovInputs.length; j++) if (ovInputs[j].value.trim()) return false;
+        return true;
+      }
+      return false;
+    }
+
+    // ①時間割は必須項目のため、1コマも登録されていない間は「次へ」を押せないようにする
+    function hasScheduleEntry() {
+      return scheduleRows.some(function (r) { return r.subject && r.subject.trim(); });
+    }
+
+    function updateNextButtonLabel() {
+      var n = currentStep;
+      if (n >= 5) return;
+      var nextBtn = document.getElementById('nextBtn');
+      if (n === 1) {
+        nextBtn.disabled = !hasScheduleEntry();
+        nextBtn.innerHTML = '次へ<span>›</span>';
+        return;
+      }
+      nextBtn.disabled = false;
+      var verb = isStepEmpty(n) ? 'スキップ' : '次へ';
+      nextBtn.innerHTML = verb + '<span>›</span>';
+    }
+
+    function goNext() {
+      if (currentStep < 5) goToStep(currentStep + 1);
+    }
+
+    function goBack() {
+      if (currentStep > 1) goToStep(currentStep - 1);
+    }
+
+    function submitForm() {
+      var rows = scheduleRows
+        .filter(function (r) { return r.subject && r.subject.trim(); })
+        .map(function (r) { return { day: r.day, period: r.period, subject: r.subject.trim() }; });
       if (rows.length === 0) {
-        showResult(false, '時間割を1行以上、科目名まで入れてください。');
+        showResult(false, '時間割を1コマ以上、登録してください。');
+        goToStep(1);
         return;
       }
       var keywords = {};
@@ -206,7 +601,6 @@
         var v = kwInputs[k].value.trim();
         if (v) keywords[sub] = v;
       }
-      // 科目別の上書き（minutes か naming が非空の科目のみ）
       var overrides = {};
       var ovMin = document.querySelectorAll('#overrides input.ov-min');
       for (var m = 0; m < ovMin.length; m++) {
@@ -250,9 +644,9 @@
           html += '<li>設定ファイル: <a href="' + res.configUrl + '" target="_blank">lograku.md</a></li>';
           html += '</ul>';
           if (res.triggerInstalled) {
-            html += '<p class="note">✅ 自動処理ON：30分ごとに <b>ログらく/_inbox</b> を自動チェックして議事録を作ります。録音や文字起こしを <b>_inbox</b> に置くだけでOK。</p>';
+            html += '<p class="field-note">✅ 自動処理ON：30分ごとに <b>ログらく/_inbox</b> を自動チェックして議事録を作ります。録音や文字起こしを <b>_inbox</b> に置くだけでOK。</p>';
           } else {
-            html += '<p class="note">⚠ 自動処理の登録に失敗しました。設定をもう一度開くか、管理者に連絡してください。</p>';
+            html += '<p class="field-note">⚠ 自動処理の登録に失敗しました。設定をもう一度開くか、管理者に連絡してください。</p>';
           }
           showResultHtml(true, html);
         })
@@ -316,7 +710,7 @@
         .withSuccessHandler(function () {
           b.disabled = false;
           b.textContent = '⏸ 自動処理を止める';
-          showResultHtml(true, '<b>自動処理を止めました。</b><p class="note">フォルダと設定(lograku.md)はそのまま残っています。再開するには時間割を入れて「この内容で作成する」を押してください。</p>');
+          showResultHtml(true, '<b>自動処理を止めました。</b><p class="field-note">フォルダと設定(lograku.md)はそのまま残っています。再開するには時間割を入れて「この内容で作成する」を押してください。</p>');
         })
         .withFailureHandler(function (e) {
           b.disabled = false;
@@ -326,22 +720,13 @@
         .stopAutomation();
     }
 
-    // ── 読込時：既存設定があればフォームへ反映、無ければ初期2行 ──
+    // ── 読込時：既存設定があればフォームへ反映 ──
     function prefill(cfg) {
       cfg = cfg || {};
-      if (cfg.exists && cfg.rows && cfg.rows.length > 0) {
-        for (var i = 0; i < cfg.rows.length; i++) {
-          addRow(cfg.rows[i].day, cfg.rows[i].period, cfg.rows[i].subject);
-        }
-      } else {
-        addRow('月', '1', '');
-        addRow('火', '3', '');
-      }
-
-      // 科目に連動する表を生成してから値を流し込む
+      scheduleRows = (cfg.exists && cfg.rows) ? cfg.rows.slice() : [];
+      renderGrid();
       refreshSections();
 
-      // 分類ヒント
       if (cfg.keywords) {
         for (var kn in cfg.keywords) {
           if (!cfg.keywords.hasOwnProperty(kn)) continue;
@@ -350,7 +735,6 @@
         }
       }
 
-      // 科目別の上書き
       if (cfg.overrides) {
         for (var on in cfg.overrides) {
           if (!cfg.overrides.hasOwnProperty(on)) continue;
@@ -362,26 +746,30 @@
         }
       }
 
-      // 共通既定
       if (cfg.minutesGuide) document.getElementById('minutesGuide').value = cfg.minutesGuide;
       if (cfg.namingRule) document.getElementById('namingRule').value = cfg.namingRule;
 
-      // 各自キーが保存済みなら placeholder だけ変える（キー値は表示しない）
       if (cfg.hasUserKey) {
         document.getElementById('geminiKey').placeholder = '設定済み（変更する場合のみ入力）';
       }
     }
 
     function loadDefaults(err) {
-      // getCurrentConfig が失敗してもフォームは使えるよう初期2行を出す
-      addRow('月', '1', '');
-      addRow('火', '3', '');
+      scheduleRows = [];
+      renderGrid();
     }
 
-    // querySelector の属性値に科目名を埋めるための簡易エスケープ（" と \ のみ）
     function cssEscape(s) {
       return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     }
+
+    // 分類ヒント・ルール設定・詳細設定の入力欄は動的に生成されるため、イベント委譲で入力を検知して
+    // 「次へ」/「スキップ」の文言をリアルタイムに切り替える
+    document.addEventListener('input', function (e) {
+      if (e.target.matches('#keywords input.kw, #minutesGuide, #namingRule, #overrides input.ov-min, #overrides input.ov-nam')) {
+        updateNextButtonLabel();
+      }
+    });
 
     window.addEventListener('load', function () {
       google.script.run
