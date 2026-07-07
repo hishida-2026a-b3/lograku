@@ -451,26 +451,40 @@ function markProcessed(fileId) {
 
 // ── 通知（Discord Webhook / Logger フォールバック） ──
 function notifyResult(r) {
-  var mark = r.heldForReview ? '🟡 要確認' : '✅';
-  var content = mark + ' 授業ファイルを作成しました\n' +
-    '科目: **' + r.subject + '**（信頼度' + Math.round(r.confidence * 100) + '%）\n' +
-    '保存先: ' + r.destFolderName + '/' + r.filename + '\n' +
-    'ドキュメント: ' + r.docUrl;
+  var heldForReview = !!r.heldForReview;
+  var confidencePct = Math.round(r.confidence * 100);
+  var plainSummary = (heldForReview ? '🟡 要確認' : '✅') + ' 授業ファイルを作成しました: ' + r.subject;
 
-  var webhook = PropertiesService.getScriptProperties().getProperty('DISCORD_WEBHOOK_URL');
+  var embed = {
+    title: (heldForReview ? '🟡 要確認：授業ファイルを作成しました' : '✅ 授業ファイルを作成しました'),
+    url: r.docUrl,
+    color: heldForReview ? 15844367 : 3066993, // 黄色 / 緑
+    fields: [
+      { name: '科目', value: r.subject + '（信頼度' + confidencePct + '%）', inline: false },
+      { name: '保存先', value: r.destFolderName + '/' + r.filename, inline: false }
+    ],
+    timestamp: new Date().toISOString()
+  };
+
+  var webhook = PropertiesService.getUserProperties().getProperty('DISCORD_WEBHOOK_URL')
+    || PropertiesService.getScriptProperties().getProperty('DISCORD_WEBHOOK_URL');
   if (!webhook) {
-    Logger.log('[ログらく通知] ' + content);
+    Logger.log('[ログらく通知] ' + plainSummary + ' / ' + r.docUrl);
     return;
   }
   try {
-    UrlFetchApp.fetch(webhook, {
+    var res = UrlFetchApp.fetch(webhook, {
       method: 'post',
       contentType: 'application/json',
-      payload: JSON.stringify({ content: content }),
+      payload: JSON.stringify({ embeds: [embed] }),
       muteHttpExceptions: true
     });
+    var code = res.getResponseCode();
+    if (code < 200 || code >= 300) {
+      Logger.log('ログらく: Discord Webhookがエラーを返しました（HTTP ' + code + '）: ' + res.getContentText());
+    }
   } catch (e) {
-    Logger.log('ログらく: Discord 通知に失敗（Logger にフォールバック）: ' + content);
+    Logger.log('ログらく: Discord 通知に失敗（Logger にフォールバック）: ' + plainSummary + ' / エラー: ' + (e && e.message ? e.message : e));
   }
 }
 
